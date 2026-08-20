@@ -1915,3 +1915,36 @@ def test_fmri_cleaner_ensure_finite(ensure_finite: bool) -> None:
         assert np.isfinite(cleaned).all()
     else:
         assert not np.isfinite(cleaned).all()
+
+
+# ---------------------------------------------------------------------------
+# FmriCleaner.filter default is compatible with nilearn.signal.clean
+# ---------------------------------------------------------------------------
+
+
+def test_fmri_cleaner_default_filter_does_not_crash() -> None:
+    """The default FmriCleaner must not crash nilearn.signal.clean.
+
+    Regression for the ``filter=None`` default, which nilearn rejects
+    with ``ValueError: Filter method None not implemented.``
+    """
+    data = np.random.randn(3, 50).astype(np.float32)
+    data[0, 10] = np.nan
+
+    cleaner = ns.extractors.FmriCleaner()
+    cleaned = cleaner.clean(data, t_r=1.0)
+
+    assert cleaned.shape == data.shape
+    assert np.isfinite(cleaned).all()
+
+
+def test_fmri_cleaner_filter_none_disables_filtering() -> None:
+    """An explicit ``filter=None`` degrades to no filtering instead of crashing."""
+    data = np.random.randn(3, 50).astype(np.float32)
+    cleaner = ns.extractors.FmriCleaner(
+        detrend=False, standardize=False, filter=None
+    )
+    cleaned = cleaner.clean(data, t_r=1.0)
+
+    assert cleaned.shape == data.shape
+    assert cleaned.dtype == data.dtype

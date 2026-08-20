@@ -1089,7 +1089,9 @@ class FmriCleaner(pydantic.BaseModel):
     high_pass : float | None
         High-pass filter cutoff in Hz.
     filter: tp.Literal["butterworth", "cosine"] | None
-        Filter to use: "butterworth" or "cosine".
+        Filter method forwarded to ``nilearn.signal.clean``. Defaults to
+        ``"butterworth"`` (matching nilearn's own default); ``None``
+        disables filtering.
     ensure_finite: bool
         Whether to replace non-finite values (NaN, +/-Inf) with 0.
     """
@@ -1099,7 +1101,7 @@ class FmriCleaner(pydantic.BaseModel):
     detrend: bool = True
     high_pass: float | None = None
     low_pass: float | None = None
-    filter: tp.Literal["butterworth", "cosine"] | None = None
+    filter: tp.Literal["butterworth", "cosine"] | None = "butterworth"
     ensure_finite: bool = True
 
     def clean(self, data: np.ndarray, t_r: float) -> np.ndarray:
@@ -1120,7 +1122,9 @@ class FmriCleaner(pydantic.BaseModel):
                 standardize=self.standardize,
                 high_pass=self.high_pass,
                 low_pass=self.low_pass,
-                filter=self.filter,
+                # nilearn uses False as the "no filter" sentinel and rejects
+                # None (see _check_filter_parameters), so map None -> False.
+                filter=self.filter or False,
                 detrend=self.detrend,
                 ensure_finite=self.ensure_finite,
             )
